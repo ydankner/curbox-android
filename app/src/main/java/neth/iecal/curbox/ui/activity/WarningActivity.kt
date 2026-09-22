@@ -96,8 +96,7 @@ class WarningActivity : AppCompatActivity() {
             } else {
                  Toast.makeText(this@WarningActivity, R.string.warning_invalid_qr, Toast.LENGTH_LONG).show()
             }
-        } &&
-            (!isAnkiClearRequired || isAnkiClearVerified)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -549,7 +548,8 @@ class WarningActivity : AppCompatActivity() {
         isPrimaryUnlockActionReady = isReady
         binding.btnProceed.isEnabled = isReady &&
             (!isFocusGoalRequired || isFocusGoalVerified) &&
-            (!isAppGoalRequired || isAppGoalVerified)
+            (!isAppGoalRequired || isAppGoalVerified) &&
+            (!isAnkiClearRequired || isAnkiClearVerified)
     }
 
     private fun setupFocusGoalRequirement(config: AppBlockerWarningScreenConfig) {
