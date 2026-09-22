@@ -107,10 +107,11 @@ class AppBlocker : BaseBlocker() {
             return
         }
 
-        // Our own countdown overlay must not count as leaving the app it is shown over.
-        if (packageName == service.packageName &&
-            event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
-            usageTimerOverlay?.isShowing == true
+        // Content changes also arrive from windows in the background, such as clock widgets or
+        // our own countdown overlay. Only a change in the active window means the user switched.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED &&
+            packageName != lastPackage &&
+            service.rootInActiveWindow?.packageName?.toString() != packageName
         ) {
             return
         }

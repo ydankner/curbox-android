@@ -46,8 +46,6 @@ class UsageTimerOverlayManager(private val service: BaseBlockingService) {
     @Volatile var isEnabled = false
         private set
 
-    val isShowing: Boolean get() = overlayView != null
-
     private val ticker = object : Runnable {
         override fun run() {
             val remaining = endElapsed - SystemClock.elapsedRealtime()
