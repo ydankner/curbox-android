@@ -35,6 +35,7 @@ import neth.iecal.curbox.data.models.upgradeLegacyKeywordGroupConfigs
 import neth.iecal.curbox.services.BaseBlockingService
 import neth.iecal.curbox.trackers.WebsiteObservation
 import neth.iecal.curbox.ui.activity.WarningActivity
+import neth.iecal.curbox.ui.overlay.UsageTimerOverlayManager
 import neth.iecal.curbox.utils.ActiveTimeGroupWindow
 import neth.iecal.curbox.utils.KeywordMatcher
 import neth.iecal.curbox.utils.TimerNotification
@@ -79,6 +80,8 @@ class KeywordBlocker : BaseBlocker() {
     private var lastBlockedTarget = ""
     private var blockSuppressedUntil = 0L
     @Volatile private var lastWebsiteObservation: WebsiteObservation? = null
+
+    var usageTimerOverlay: UsageTimerOverlayManager? = null
 
     fun compileKeywords(keywords: Collection<String>): Pair<List<Regex>, List<String>> =
         KeywordMatcher.compileKeywords(keywords)
@@ -194,13 +197,19 @@ class KeywordBlocker : BaseBlocker() {
 
     fun onWebsiteObserved(observation: WebsiteObservation?) {
         lastWebsiteObservation = observation
-        if (observation == null || !isTurnedOn) return
+        if (observation == null || !isTurnedOn) {
+            usageTimerOverlay?.hide(UsageTimerOverlayManager.SOURCE_WEBSITE)
+            return
+        }
         evaluateAndBlock(observation.packageName, observation.urlIdentifier)
     }
 
     private fun evaluateAndBlock(packageName: String, urlIdentifier: String) {
         val matched = findMatchingGroups(urlIdentifier)
-        if (matched.isEmpty()) return
+        if (matched.isEmpty()) {
+            usageTimerOverlay?.hide(UsageTimerOverlayManager.SOURCE_WEBSITE)
+            return
+        }
         val now = System.currentTimeMillis()
 
         val eligible = matched.filter { group ->
@@ -215,11 +224,14 @@ class KeywordBlocker : BaseBlocker() {
         for (group in eligible) {
             val window = group.config?.schedule?.activeWindow(now) ?: continue
             if (isUsageLimitExceeded(group, window)) {
+                usageTimerOverlay?.hide(UsageTimerOverlayManager.SOURCE_WEBSITE)
                 if (!claimBlock(packageName, urlIdentifier, group.id)) return
                 handleBlocking(group)
                 return
             }
         }
+
+        showWebsiteTimer(packageName, eligible, now)
 
         // None blocked → schedule the soonest re-check across the matched groups
         var soonest = 0L
@@ -231,6 +243,22 @@ class KeywordBlocker : BaseBlocker() {
             CoroutineScope(Dispatchers.IO).launch {
                 service.dataStoreManager.updateNextWebsiteRecheckTime(soonest)
             }
+        }
+    }
+
+    private fun showWebsiteTimer(packageName: String, groups: List<KeywordGroup>, now: Long) {
+        val overlay = usageTimerOverlay ?: return
+        if (!overlay.isEnabled) return
+        val remaining = groups.mapNotNull { group ->
+            val config = group.config ?: return@mapNotNull null
+            val window = config.schedule.activeWindow(now) ?: return@mapNotNull null
+            val limit = limitForToday(config.usage) * 60_000L
+            if (limit <= 0L) null else limit - groupUsage(group, window)
+        }.minOrNull()
+        if (remaining != null && remaining > 0L) {
+            overlay.show(UsageTimerOverlayManager.SOURCE_WEBSITE, remaining, packageName)
+        } else {
+            overlay.hide(UsageTimerOverlayManager.SOURCE_WEBSITE)
         }
     }
 

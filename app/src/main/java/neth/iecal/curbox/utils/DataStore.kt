@@ -359,6 +359,10 @@ class DataStoreManager(private val context: Context) {
         updateGated(GatedSettingsField.WEBSITE_USAGE_TRACKING) { isEnabled }
     }
 
+    suspend fun updateUsageTimerOverlayEnabled(isEnabled: Boolean) {
+        settingsDataStore.updateData { it.copy(isUsageTimerOverlayEnabled = isEnabled) }
+    }
+
     suspend fun updateMindfulMessageConfig(config: neth.iecal.curbox.data.models.MindfulMessageConfig) {
         updateGated(GatedSettingsField.MINDFUL_MESSAGES) { config }
     }

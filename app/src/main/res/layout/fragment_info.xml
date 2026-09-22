@@ -396,6 +396,21 @@
                     android:text="@string/usage_tracking_disabled_warning"
                     android:textColor="?attr/colorError"
                     style="@style/TextAppearance.Material3.BodySmall" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_usage_timer_overlay"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:minHeight="56dp"
+                    android:text="@string/usage_timer_overlay" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/usage_timer_overlay_description"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    style="@style/TextAppearance.Material3.BodySmall" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
