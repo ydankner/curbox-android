@@ -1,5 +1,6 @@
 package neth.iecal.curbox.ui.fragments.main.reducers.blockertools.shared
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,8 +9,10 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
 import com.journeyapps.barcodescanner.ScanContract
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import neth.iecal.curbox.data.models.AppBlockerWarningScreenConfig
 import neth.iecal.curbox.databinding.FragmentWarningConfigBinding
 import neth.iecal.curbox.utils.DataStoreManager
@@ -89,11 +92,27 @@ class WarningConfigFragment : Fragment() {
             val groups = DataStoreManager(requireContext()).settings.first().manualFocusGroups
             formController.bindFocusGroups(groups)
         }
+        viewLifecycleOwner.lifecycleScope.launch {
+            formController.bindGoalApps(loadLaunchableApps())
+        }
         qrController.bind(config.qrKeys)
         nfcController.bind(config.nfcKeys)
         formController.setupListeners(::saveConfig)
         qrController.setupListeners()
         nfcController.setupListeners()
+    }
+
+    private suspend fun loadLaunchableApps(): List<Pair<String, String>> {
+        val packageManager = requireContext().packageManager
+        val ownPackage = requireContext().packageName
+        return withContext(Dispatchers.IO) {
+            val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+            packageManager.queryIntentActivities(launcherIntent, 0)
+                .map { it.activityInfo.packageName to it.loadLabel(packageManager).toString() }
+                .filter { it.first != ownPackage }
+                .distinctBy { it.first }
+                .sortedBy { it.second.lowercase() }
+        }
     }
 
     private fun saveConfig() {

@@ -278,6 +278,14 @@ object RestrictionComparator {
                     o.focusGoalRequiredMinutes.coerceAtLeast(1)
             else -> true
         }
+        val appGoalOk = when {
+            o.isAppGoalRequirementEnabled && !n.isAppGoalRequirementEnabled -> false
+            o.isAppGoalRequirementEnabled && n.isAppGoalRequirementEnabled ->
+                n.appGoalPackageName == o.appGoalPackageName &&
+                    n.appGoalRequiredMinutes.coerceAtLeast(1) >=
+                    o.appGoalRequiredMinutes.coerceAtLeast(1)
+            else -> true
+        }
         val intentMinLengthOk = when {
             !o.isIntentRequirementEnabled || !n.isIntentRequirementEnabled -> true
             else -> n.minIntentLength.coerceAtLeast(1) >= o.minIntentLength.coerceAtLeast(1)
@@ -287,7 +295,7 @@ object RestrictionComparator {
             proceedDisabledOk && dialogHiddenOk &&
             proceedDelayOk && vibrateOk && proceedLimitOk && qrOk && nfcOk && typingOk && intentOk &&
             adaptiveMathOk && adaptiveMathQuestionCountOk && adaptiveMathStartingLevelOk &&
-            focusGoalOk && intentMinLengthOk
+            focusGoalOk && appGoalOk && intentMinLengthOk
     }
 
     /**

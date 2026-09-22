@@ -32,6 +32,7 @@ import neth.iecal.curbox.data.models.AppBlockerWarningScreenConfig
 import neth.iecal.curbox.databinding.DialogWarningOverlayBinding
 import neth.iecal.curbox.utils.DataStoreManager
 import neth.iecal.curbox.utils.FocusGoalProgress
+import neth.iecal.curbox.utils.UsageStatsHelper
 import java.util.Calendar
 import kotlin.random.Random
 import kotlinx.coroutines.CancellationException
@@ -62,6 +63,8 @@ class WarningActivity : AppCompatActivity() {
     private var isAdaptiveMathComplete = false
     private var isFocusGoalRequired = false
     private var isFocusGoalVerified = true
+    private var isAppGoalRequired = false
+    private var isAppGoalVerified = true
     private var isPrimaryUnlockActionReady = false
 
     private lateinit var binding: DialogWarningOverlayBinding
@@ -148,6 +151,14 @@ class WarningActivity : AppCompatActivity() {
             !isProceedLimitExceeded
         ) {
             setupFocusGoalRequirement(warningScreenConfig)
+        }
+        isAppGoalRequired = warningScreenConfig.isAppGoalRequirementEnabled
+        isAppGoalVerified = !isAppGoalRequired
+        if (isAppGoalRequired &&
+            !warningScreenConfig.isProceedDisabled &&
+            !isProceedLimitExceeded
+        ) {
+            setupAppGoalRequirement(warningScreenConfig)
         }
         val isHomePressRequested = intent.getBooleanExtra("is_press_home", false)
         binding.minsPicker.setValue(3)
@@ -309,6 +320,9 @@ class WarningActivity : AppCompatActivity() {
             if (isFocusGoalRequired &&
                 !isFocusGoalVerified
             ) {
+                return@setOnClickListener
+            }
+            if (isAppGoalRequired && !isAppGoalVerified) {
                 return@setOnClickListener
             }
 
@@ -519,7 +533,8 @@ class WarningActivity : AppCompatActivity() {
     private fun setPrimaryUnlockActionReady(isReady: Boolean) {
         isPrimaryUnlockActionReady = isReady
         binding.btnProceed.isEnabled = isReady &&
-            (!isFocusGoalRequired || isFocusGoalVerified)
+            (!isFocusGoalRequired || isFocusGoalVerified) &&
+            (!isAppGoalRequired || isAppGoalVerified)
     }
 
     private fun setupFocusGoalRequirement(config: AppBlockerWarningScreenConfig) {
@@ -598,6 +613,54 @@ class WarningActivity : AppCompatActivity() {
 
     private fun restrictFocusGoal(message: String) {
         binding.focusGoalStatus.text = message
+        binding.btnProceed.visibility = View.GONE
+        binding.btnCancel.setText(R.string.okay)
+    }
+
+    private fun setupAppGoalRequirement(config: AppBlockerWarningScreenConfig) {
+        binding.appGoalStatus.visibility = View.VISIBLE
+        binding.appGoalStatus.setText(R.string.warning_app_goal_checking)
+        setPrimaryUnlockActionReady(isPrimaryUnlockActionReady)
+
+        lifecycleScope.launch {
+            try {
+                val packageName = config.appGoalPackageName
+                val appName = runCatching {
+                    packageManager.getApplicationLabel(
+                        packageManager.getApplicationInfo(packageName, 0)
+                    ).toString()
+                }.getOrDefault(packageName)
+                val usedToday = withContext(Dispatchers.IO) {
+                    UsageStatsHelper(applicationContext)
+                        .getForegroundStatsByRelativeDay(0)
+                        .firstOrNull { it.packageName == packageName }
+                        ?.totalTime ?: 0L
+                }
+                val requiredDuration = config.appGoalRequiredMinutes
+                    .coerceIn(MIN_APP_GOAL_MINUTES, MAX_APP_GOAL_MINUTES) * 60_000L
+                if (packageName.isNotEmpty() && usedToday >= requiredDuration) {
+                    isAppGoalVerified = true
+                    binding.appGoalStatus.text = getString(
+                        R.string.warning_app_goal_complete,
+                        appName
+                    )
+                    setPrimaryUnlockActionReady(isPrimaryUnlockActionReady)
+                } else {
+                    val remainingMinutes = (requiredDuration - usedToday + 59_999L) / 60_000L
+                    restrictAppGoal(
+                        getString(R.string.warning_app_goal_not_met, remainingMinutes, appName)
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                restrictAppGoal(getString(R.string.warning_app_goal_check_failed))
+            }
+        }
+    }
+
+    private fun restrictAppGoal(message: String) {
+        binding.appGoalStatus.text = message
         binding.btnProceed.visibility = View.GONE
         binding.btnCancel.setText(R.string.okay)
     }
@@ -760,5 +823,7 @@ class WarningActivity : AppCompatActivity() {
         const val MAX_ADAPTIVE_MATH_LEVEL = 10
         const val MIN_FOCUS_GOAL_MINUTES = 15
         const val MAX_FOCUS_GOAL_MINUTES = 24 * 60
+        const val MIN_APP_GOAL_MINUTES = 1
+        const val MAX_APP_GOAL_MINUTES = 24 * 60
     }
 }

@@ -600,6 +600,71 @@
                     </LinearLayout>
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/app_goal_requirement_switch"
+                        style="@style/TextAppearance.Material3.TitleSmall"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/label_app_goal_unlock" />
+
+                    <LinearLayout
+                        android:id="@+id/app_goal_setup_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            style="@style/TextAppearance.Material3.BodyMedium"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_app_goal_unlock_desc" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/app_goal_app_layout"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:hint="@string/hint_app_goal_app">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/app_goal_app_dropdown"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="none" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/app_goal_minutes_input_layout"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:hint="@string/warning_app_goal_minutes_input"
+                            app:suffixText="@string/unit_minutes">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/app_goal_minutes_input"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:imeOptions="actionDone"
+                                android:inputType="number"
+                                android:selectAllOnFocus="true" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/app_goal_minutes_slider"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:stepSize="1.0"
+                            android:value="15.0"
+                            android:valueFrom="1.0"
+                            android:valueTo="240.0" />
+                    </LinearLayout>
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/proceed_limit_switch"
                         style="@style/TextAppearance.Material3.TitleSmall"
                         android:layout_width="match_parent"
