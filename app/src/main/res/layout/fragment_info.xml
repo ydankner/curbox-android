@@ -400,6 +400,54 @@
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
+            style="?attr/materialCardViewOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="24dp"
+            app:strokeColor="?attr/colorOutlineVariant">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="28dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_backup_title"
+                    style="@style/TextAppearance.Material3.TitleMedium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="20dp"
+                    android:text="@string/settings_backup_description"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    style="@style/TextAppearance.Material3.BodyMedium" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_export_settings"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    app:cornerRadius="16dp"
+                    android:text="@string/settings_backup_export" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_import_settings"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="8dp"
+                    app:cornerRadius="16dp"
+                    android:text="@string/settings_backup_import" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_crash_logs"
             style="?attr/materialCardViewOutlinedStyle"
             android:layout_width="match_parent"

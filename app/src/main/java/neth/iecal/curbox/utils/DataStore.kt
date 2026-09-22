@@ -264,6 +264,14 @@ class DataStoreManager(private val context: Context) {
         schedulePendingChanges()
     }
 
+    suspend fun exportSettingsBackup(): String =
+        SettingsBackupCodec.encode(settings.first(), gson)
+
+    /** Restores a backup file through the sync path, so the settings change delay still applies. */
+    suspend fun importSettingsBackup(json: String) {
+        updateFromSync(SettingsBackupCodec.decode(json, gson))
+    }
+
     suspend fun updateAutoDndGroups(newGroups: List<neth.iecal.curbox.data.models.AutoDndGroup>) {
         updateGated(GatedSettingsField.AUTO_DND_GROUPS) { newGroups }
     }
