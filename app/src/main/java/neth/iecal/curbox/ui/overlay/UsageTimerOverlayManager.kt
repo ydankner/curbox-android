@@ -68,6 +68,7 @@ class UsageTimerOverlayManager(private val service: BaseBlockingService) {
                 .distinctUntilChanged()
                 .collect { enabled ->
                     isEnabled = enabled
+                    Log.d(TAG, "Countdown enabled: $enabled")
                     if (!enabled) handler.post { removeView() }
                 }
         }
