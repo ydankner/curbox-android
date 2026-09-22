@@ -93,6 +93,19 @@ class AppUsageTracker {
         startHeartbeat()
     }
 
+    /**
+     * Time [packageName] has been in the foreground since the last write, or 0 when it is not the
+     * app being tracked. Usage limits add this so they do not wait for the next heartbeat.
+     */
+    fun uncommittedUsageSince(packageName: String, sinceWallMs: Long): Long {
+        if (!trackingEnabled || currentPackage != packageName) return 0L
+        val nowElapsed = SystemClock.elapsedRealtime()
+        if (nowElapsed <= lastCommitElapsed) return 0L
+        val startWall = sessionStartWall + (lastCommitElapsed - sessionStartElapsed)
+        val endWall = sessionStartWall + (nowElapsed - sessionStartElapsed)
+        return (endWall - maxOf(startWall, sinceWallMs)).coerceAtLeast(0L)
+    }
+
     private fun endCurrentSession() {
         if (currentPackage == null) return
         commit(SystemClock.elapsedRealtime())

@@ -93,6 +93,9 @@ class AppBlocker : BaseBlocker() {
 
     var usageTimerOverlay: UsageTimerOverlayManager? = null
 
+    /** Foreground time not yet written by AppUsageTracker; (package, windowStartMs) -> millis. */
+    var liveUsage: ((String, Long) -> Long)? = null
+
     private val ignoredApps = mutableListOf("com.android.systemui")
 
     fun doAppBlockerCheck(event: AccessibilityEvent?) {
@@ -170,8 +173,9 @@ class AppBlocker : BaseBlocker() {
                         minOf(now, activeWindow.endMs)
                     )
                 }
+                val liveMillis = liveUsage?.invoke(packageName, activeWindow.startMs) ?: 0L
                 val usageLimitMillis = getUsageLimitForToday(entry.config.usage) * 60_000L
-                val remainingUsage = usageLimitMillis - currentUsage
+                val remainingUsage = usageLimitMillis - currentUsage - liveMillis
 
                 if (remainingUsage <= 0) {
                     notificationManager.stopTimer()
