@@ -190,6 +190,7 @@ class AppBlockerService : BaseBlockingService() {
             websiteObservationChannel.trySend(observation)
         }
         appUsageTracker.setup(this)
+        appBlocker.liveUsage = appUsageTracker::uncommittedUsageSince
         neth.iecal.curbox.utils.UsageStatsCleaner.watch(this)
 
         focusModeBlocker.setupReceivers()
