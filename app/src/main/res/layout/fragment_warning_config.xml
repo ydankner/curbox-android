@@ -599,6 +599,23 @@
                             android:valueTo="1440.0" />
                     </LinearLayout>
 
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/anki_clear_requirement_switch"
+                        style="@style/TextAppearance.Material3.TitleSmall"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/label_anki_clear_unlock" />
+
+                    <TextView
+                        android:id="@+id/anki_clear_requirement_desc"
+                        style="@style/TextAppearance.Material3.BodyMedium"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/label_anki_clear_unlock_desc"
+                        android:visibility="gone" />
                     <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/app_goal_requirement_switch"
                         style="@style/TextAppearance.Material3.TitleSmall"

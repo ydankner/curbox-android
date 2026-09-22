@@ -286,6 +286,7 @@ object RestrictionComparator {
                     o.appGoalRequiredMinutes.coerceAtLeast(1)
             else -> true
         }
+        val ankiClearOk = !o.isAnkiClearRequirementEnabled || n.isAnkiClearRequirementEnabled
         val intentMinLengthOk = when {
             !o.isIntentRequirementEnabled || !n.isIntentRequirementEnabled -> true
             else -> n.minIntentLength.coerceAtLeast(1) >= o.minIntentLength.coerceAtLeast(1)
@@ -295,7 +296,7 @@ object RestrictionComparator {
             proceedDisabledOk && dialogHiddenOk &&
             proceedDelayOk && vibrateOk && proceedLimitOk && qrOk && nfcOk && typingOk && intentOk &&
             adaptiveMathOk && adaptiveMathQuestionCountOk && adaptiveMathStartingLevelOk &&
-            focusGoalOk && appGoalOk && intentMinLengthOk
+            focusGoalOk && appGoalOk && ankiClearOk && intentMinLengthOk
     }
 
     /**
