@@ -95,6 +95,16 @@
         tools:text="Focus goal not met. 30 minutes remaining." />
 
     <TextView
+        android:id="@+id/app_goal_status"
+        style="@style/TextAppearance.Material3.BodyLarge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:gravity="center"
+        android:visibility="gone"
+        tools:text="App goal not met. Use AnkiDroid for 10 more minutes today." />
+
+    <TextView
         android:id="@+id/typing_target_sentence"
         style="@style/TextAppearance.Material3.BodyMedium"
         android:layout_width="match_parent"

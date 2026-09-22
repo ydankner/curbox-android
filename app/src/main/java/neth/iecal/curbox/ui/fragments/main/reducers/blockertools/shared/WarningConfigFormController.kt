@@ -32,6 +32,8 @@ internal class WarningConfigFormController(
     }
     private var focusGroupOptions: List<FocusGroupUnlockOption> = emptyList()
     private var selectedFocusGroupId = ""
+    private var appGoalOptions: List<AppGoalUnlockOption> = emptyList()
+    private var selectedAppGoalPackage = ""
 
     fun bind(
         config: AppBlockerWarningScreenConfig,
@@ -92,6 +94,14 @@ internal class WarningConfigFormController(
         selectedFocusGroupId = config.focusGoalGroupId
         binding.focusGoalRequirementSwitch.isChecked = config.isFocusGoalRequirementEnabled
         binding.focusGoalSetupContainer.isVisible = config.isFocusGoalRequirementEnabled
+
+        val appGoalMinutes = config.appGoalRequiredMinutes.coerceAtLeast(MIN_APP_GOAL_MINUTES)
+        binding.appGoalMinutesSlider.value = appGoalMinutes.toFloat()
+            .coerceAtMost(binding.appGoalMinutesSlider.valueTo)
+        updateAppGoalMinutesInput(appGoalMinutes.toLong())
+        selectedAppGoalPackage = config.appGoalPackageName
+        binding.appGoalRequirementSwitch.isChecked = config.isAppGoalRequirementEnabled
+        binding.appGoalSetupContainer.isVisible = config.isAppGoalRequirementEnabled
 
         val fixedTimeMinutes = (config.timeInterval / 60_000L).coerceAtLeast(1L)
         binding.fixedTimeSlider.value = fixedTimeMinutes.toFloat().coerceAtMost(120f)
@@ -234,6 +244,23 @@ internal class WarningConfigFormController(
                 binding.focusGoalGroupLayout.error = null
             }
         }
+        setupNumericInput(
+            binding.appGoalMinutesSlider,
+            binding.appGoalMinutesInput,
+            binding.appGoalMinutesInputLayout,
+            maximumValue = { MAX_APP_GOAL_MINUTES.toLong() },
+            updateInput = ::updateAppGoalMinutesInput
+        )
+        binding.appGoalAppDropdown.setOnItemClickListener { _, _, position, _ ->
+            selectedAppGoalPackage = appGoalOptions[position].packageName
+            binding.appGoalAppLayout.error = null
+        }
+        binding.appGoalRequirementSwitch.setOnCheckedChangeListener { _, isChecked ->
+            binding.appGoalSetupContainer.isVisible = isChecked
+            if (!isChecked) {
+                binding.appGoalAppLayout.error = null
+            }
+        }
         binding.advancedSettingsHeader.setOnClickListener {
             val isCurrentlyVisible = binding.advancedSettingsContent.isVisible
             TransitionManager.beginDelayedTransition(
@@ -284,6 +311,13 @@ internal class WarningConfigFormController(
                 ""
             },
             focusGoalRequiredMinutes = numericInputValue(binding.focusGoalMinutesInput).toInt(),
+            isAppGoalRequirementEnabled = binding.appGoalRequirementSwitch.isChecked,
+            appGoalPackageName = if (binding.appGoalRequirementSwitch.isChecked) {
+                selectedAppGoalPackage
+            } else {
+                ""
+            },
+            appGoalRequiredMinutes = numericInputValue(binding.appGoalMinutesInput).toInt(),
             proceedDelayInSecs = numericInputValue(binding.proceedDelayInput).toInt(),
             vibrateAndIncBrightness = binding.switchVibrateBrightness.isChecked,
             proceedLimitEnabled = binding.proceedLimitSwitch.isChecked,
@@ -312,6 +346,21 @@ internal class WarningConfigFormController(
         binding.focusGoalGroupDropdown.setText(selectedGroup?.name.orEmpty(), false)
     }
 
+    fun bindGoalApps(apps: List<Pair<String, String>>) {
+        appGoalOptions = apps.map { (packageName, label) -> AppGoalUnlockOption(packageName, label) }
+        binding.appGoalAppDropdown.setAdapter(
+            android.widget.ArrayAdapter(
+                fragment.requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                appGoalOptions
+            )
+        )
+        val selectedApp = appGoalOptions.firstOrNull {
+            it.packageName == selectedAppGoalPackage
+        }
+        binding.appGoalAppDropdown.setText(selectedApp?.label.orEmpty(), false)
+    }
+
     fun validate(): Boolean {
         if (!numericInputs().all { validateNumericInput(it) }) {
             return false
@@ -321,6 +370,14 @@ internal class WarningConfigFormController(
         ) {
             binding.focusGoalGroupLayout.error = fragment.getString(
                 R.string.warning_focus_goal_group_required
+            )
+            return false
+        }
+        if (binding.appGoalRequirementSwitch.isChecked &&
+            selectedAppGoalPackage.isEmpty()
+        ) {
+            binding.appGoalAppLayout.error = fragment.getString(
+                R.string.warning_app_goal_app_required
             )
             return false
         }
@@ -407,6 +464,12 @@ internal class WarningConfigFormController(
                 binding.focusGoalMinutesSlider,
                 binding.focusGoalMinutesInput,
                 binding.focusGoalMinutesInputLayout
+            ),
+            NumericInput(
+                binding.appGoalMinutesSlider,
+                binding.appGoalMinutesInput,
+                binding.appGoalMinutesInputLayout,
+                MAX_APP_GOAL_MINUTES.toLong()
             )
         )
     }
@@ -627,6 +690,10 @@ internal class WarningConfigFormController(
         setNumericInputValue(binding.focusGoalMinutesInput, value)
     }
 
+    private fun updateAppGoalMinutesInput(value: Long) {
+        setNumericInputValue(binding.appGoalMinutesInput, value)
+    }
+
     private fun unitOptions(): List<String> {
         return listOf(
             fragment.getString(R.string.unit_minutes),
@@ -658,6 +725,8 @@ internal class WarningConfigFormController(
         const val MAX_MATH_LEVEL = 10
         const val MIN_FOCUS_MINUTES = 15
         const val MAX_FOCUS_MINUTES = 24 * 60
+        const val MIN_APP_GOAL_MINUTES = 1
+        const val MAX_APP_GOAL_MINUTES = 24 * 60
     }
 }
 
@@ -666,6 +735,13 @@ private data class FocusGroupUnlockOption(
     val name: String
 ) {
     override fun toString(): String = name
+}
+
+private data class AppGoalUnlockOption(
+    val packageName: String,
+    val label: String
+) {
+    override fun toString(): String = label
 }
 
 private data class NumericInput(
