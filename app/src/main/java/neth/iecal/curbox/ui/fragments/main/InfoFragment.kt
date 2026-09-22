@@ -10,13 +10,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import neth.iecal.curbox.BuildConfig
 import neth.iecal.curbox.data.sync.SyncGateway
@@ -33,6 +36,15 @@ class InfoFragment : Fragment() {
     private val dataStore by lazy { DataStoreManager(requireContext()) }
     private var renderingTrackingSettings = false
 
+    private val exportSettingsLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            if (uri != null) exportSettings(uri)
+        }
+    private val importSettingsLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) confirmImportSettings(uri)
+        }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -46,6 +58,7 @@ class InfoFragment : Fragment() {
 
         setupAccountSection()
         setupUsageTrackingSettings()
+        setupSettingsBackup()
         setupClickListeners()
         LanguageUtils.bindLanguageSelector(binding.languageSelector, binding.textCurrentLanguage)
     }
@@ -76,6 +89,62 @@ class InfoFragment : Fragment() {
                     renderingTrackingSettings = false
                 }
             }
+        }
+    }
+
+    private fun setupSettingsBackup() {
+        binding.btnExportSettings.setOnClickListener {
+            exportSettingsLauncher.launch("curbox_settings.json")
+        }
+        binding.btnImportSettings.setOnClickListener {
+            importSettingsLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+        }
+    }
+
+    private fun exportSettings(uri: Uri) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val context = requireContext().applicationContext
+            val saved = runCatching {
+                val json = dataStore.exportSettingsBackup()
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri, "wt")?.use {
+                        it.write(json.toByteArray(Charsets.UTF_8))
+                    } ?: throw IllegalStateException("Unable to open settings file")
+                }
+            }.isSuccess
+            Toast.makeText(
+                context,
+                if (saved) R.string.settings_backup_export_success else R.string.settings_backup_export_failed,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun confirmImportSettings(uri: Uri) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.settings_backup_import_confirm_title)
+            .setMessage(R.string.settings_backup_import_confirm_message)
+            .setPositiveButton(R.string.settings_backup_import) { _, _ -> importSettings(uri) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun importSettings(uri: Uri) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val context = requireContext().applicationContext
+            val loaded = runCatching {
+                val json = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use {
+                        it.readBytes().toString(Charsets.UTF_8)
+                    } ?: throw IllegalStateException("Unable to open settings file")
+                }
+                dataStore.importSettingsBackup(json)
+            }.isSuccess
+            Toast.makeText(
+                context,
+                if (loaded) R.string.settings_backup_import_success else R.string.settings_backup_import_failed,
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 

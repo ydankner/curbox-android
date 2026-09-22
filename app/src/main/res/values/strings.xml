@@ -1768,6 +1768,16 @@
     <string name="usage_timer_overlay">Show time left on screen</string>
     <string name="usage_timer_overlay_description">I show a small timer at the top of your screen while you use an app or website that has a time limit.</string>
     <string name="usage_timer_overlay_text">%1$s left</string>
+    <string name="settings_backup_title">Backup</string>
+    <string name="settings_backup_description">Save your groups and settings to a file. Load the file later to set things up again, like after you get a new phone.</string>
+    <string name="settings_backup_export">Save settings to a file</string>
+    <string name="settings_backup_import">Load settings from a file</string>
+    <string name="settings_backup_import_confirm_title">Load these settings?</string>
+    <string name="settings_backup_import_confirm_message">Your current groups and settings will be replaced by the ones in the file. If you use a settings change delay, changes that make blocking weaker will wait for that delay.</string>
+    <string name="settings_backup_export_success">Settings saved</string>
+    <string name="settings_backup_export_failed">Could not save settings</string>
+    <string name="settings_backup_import_success">Settings loaded</string>
+    <string name="settings_backup_import_failed">This file could not be loaded</string>
 
     <!-- Units -->
     <string name="unit_minutes">Minutes</string>
