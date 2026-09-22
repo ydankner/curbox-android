@@ -60,7 +60,6 @@ class UsageTimerOverlayManager(private val service: BaseBlockingService) {
                 // Some launchers leave an accessibility overlay unpainted until its window is
                 // touched again, so push the params along with the new text.
                 runCatching { windowManager?.updateViewLayout(view, layoutParams) }
-                Log.d(TAG, "Tick: ${format(remaining)}")
             }
             val untilNextSecond = remaining % 1_000L
             handler.postDelayed(this, if (untilNextSecond > 0L) untilNextSecond else 1_000L)
