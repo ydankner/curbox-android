@@ -26,6 +26,7 @@ data class AppBlockerWarningScreenConfig(
     val isFocusGoalRequirementEnabled: Boolean = false,
     val focusGoalGroupId: String = "",
     val focusGoalRequiredMinutes: Int = 60,
+    val isAnkiClearRequirementEnabled: Boolean = false,
     /** For app groups, grant access only for the current selected-app session. */
     val isOnOpenConfig: Boolean = false,
 )

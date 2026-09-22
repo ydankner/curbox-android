@@ -11,6 +11,8 @@
 <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.NFC" />
+    <!-- Read only use of AnkiDroid.s public ContentProvider, for the study requirement. -->
+    <uses-permission android:name="com.ichi2.anki.permission.READ_WRITE_DATABASE" />
     <uses-feature
         android:name="android.hardware.nfc"
         android:required="false" />

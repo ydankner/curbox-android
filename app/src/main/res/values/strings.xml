@@ -1661,6 +1661,13 @@
     <string name="warning_focus_goal_not_met">Focus goal not met. %1$d minutes remaining for %2$s.</string>
     <string name="warning_focus_goal_unavailable">The selected focus group is unavailable. Unlocking is restricted.</string>
     <string name="warning_focus_goal_check_failed">Focus progress could not be checked. Unlocking is restricted.</string>
+    <string name="label_anki_clear_unlock">Finish your Anki cards first</string>
+    <string name="label_anki_clear_unlock_desc">Unlocking is allowed only when AnkiDroid has no cards left to study today. I read your card counts from AnkiDroid on this device and nothing leaves your phone.</string>
+    <string name="warning_anki_clear_checking">Checking your Anki cards</string>
+    <string name="warning_anki_clear_done">Your Anki cards are done for today.</string>
+    <string name="warning_anki_clear_left">You still have %1$d Anki cards to study today.</string>
+    <string name="warning_anki_clear_unavailable">I could not read AnkiDroid. Unlocking is restricted.</string>
+    <string name="anki_permission_needed">Allow Curbox to read AnkiDroid so it can see your cards.</string>
     <string name="warning_option_choose_time">Ask me how much time I need</string>
     <string name="warning_option_choose_time_desc">You choose the duration during each unlock.</string>
     <string name="warning_option_fixed_time">Only give me a fixed amount of time</string>

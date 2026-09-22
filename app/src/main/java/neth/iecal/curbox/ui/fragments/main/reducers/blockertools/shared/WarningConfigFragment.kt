@@ -4,14 +4,18 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
 import com.journeyapps.barcodescanner.ScanContract
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import neth.iecal.curbox.R
 import neth.iecal.curbox.data.models.AppBlockerWarningScreenConfig
 import neth.iecal.curbox.databinding.FragmentWarningConfigBinding
+import neth.iecal.curbox.utils.AnkiCardQueue
 import neth.iecal.curbox.utils.DataStoreManager
 
 class WarningConfigFragment : Fragment() {
@@ -26,6 +30,17 @@ class WarningConfigFragment : Fragment() {
     private val barcodeLauncher = registerForActivityResult(ScanContract()) { result ->
         qrController?.onBarcodeResult(result.contents)
     }
+
+    private val ankiPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!granted) {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.anki_permission_needed,
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +66,11 @@ class WarningConfigFragment : Fragment() {
             onEachOpenChanged = {
                 qrController?.refreshKeyList()
                 nfcController?.refreshKeyList()
+            },
+            onAnkiRequirementEnabled = {
+                if (!AnkiCardQueue.hasPermission(requireContext())) {
+                    ankiPermissionLauncher.launch(AnkiCardQueue.PERMISSION)
+                }
             }
         )
         val timingDialog = WarningUnlockTimingDialog(
