@@ -1756,6 +1756,9 @@
     <string name="app_usage_tracking">App Usage Tracking</string>
     <string name="website_usage_tracking">Website Usage Tracking</string>
     <string name="usage_tracking_disabled_warning">Warning: Usage Based blocking options will not work for a tracking type while it is turned off.</string>
+    <string name="usage_timer_overlay">Show time left on screen</string>
+    <string name="usage_timer_overlay_description">I show a small timer at the top of your screen while you use an app or website that has a time limit.</string>
+    <string name="usage_timer_overlay_text">%1$s left</string>
 
     <!-- Units -->
     <string name="unit_minutes">Minutes</string>

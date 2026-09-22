@@ -25,6 +25,7 @@ import neth.iecal.curbox.data.models.AppUsageConfig
 import neth.iecal.curbox.data.models.upgradeLegacyAppGroupConfigs
 import neth.iecal.curbox.services.BaseBlockingService
 import neth.iecal.curbox.ui.activity.WarningActivity
+import neth.iecal.curbox.ui.overlay.UsageTimerOverlayManager
 import neth.iecal.curbox.utils.AppSuspendHelper
 import neth.iecal.curbox.utils.ShizukuRunner
 import neth.iecal.curbox.utils.TimerNotification
@@ -90,6 +91,8 @@ class AppBlocker : BaseBlocker() {
 
     private lateinit var notificationManager: TimerNotification
 
+    var usageTimerOverlay: UsageTimerOverlayManager? = null
+
     private val ignoredApps = mutableListOf("com.android.systemui")
 
     fun doAppBlockerCheck(event: AccessibilityEvent?) {
@@ -104,11 +107,20 @@ class AppBlocker : BaseBlocker() {
             return
         }
 
+        // Our own countdown overlay must not count as leaving the app it is shown over.
+        if (packageName == service.packageName &&
+            event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            usageTimerOverlay?.isShowing == true
+        ) {
+            return
+        }
+
         if (lastPackage == packageName || ignoredApps.contains(packageName)) {
             return
         }
 
         clearFinishedOnEachOpenSessions(packageName)
+        usageTimerOverlay?.hide()
 
         val now = System.currentTimeMillis()
 
@@ -177,6 +189,11 @@ class AppBlocker : BaseBlocker() {
                     totalMillis = minRemaining,
                     timerId = packageName,
                     title = service.getString(R.string.notification_title_remaining_usage)
+                )
+                usageTimerOverlay?.show(
+                    UsageTimerOverlayManager.SOURCE_APP,
+                    minRemaining,
+                    packageName
                 )
                 setUpForcedRefreshChecker("usage:$packageName", System.currentTimeMillis() + minRemaining)
             } else {
@@ -425,6 +442,7 @@ class AppBlocker : BaseBlocker() {
 
             Log.d("AppBlocker", "Showing warning screen for $packageName")
             notificationManager.stopTimer()
+            usageTimerOverlay?.hide()
             service.pressHome()
             lastPackage = ""
 

@@ -34,6 +34,7 @@ import neth.iecal.curbox.trackers.ReelUsageTracker
 import neth.iecal.curbox.trackers.WebsiteObservation
 import neth.iecal.curbox.trackers.WebsiteUsageTracker
 import neth.iecal.curbox.ui.overlay.ReelsOverlayManager
+import neth.iecal.curbox.ui.overlay.UsageTimerOverlayManager
 
 @Suppress("DEPRECATION")
 class AppBlockerService : BaseBlockingService() {
@@ -53,6 +54,7 @@ class AppBlockerService : BaseBlockingService() {
     // Usage tracking, which used to live in its own accessibility service, now
     // runs here so the user only has to grant one service.
     private val reelsOverlayManager by lazy { ReelsOverlayManager(this) }
+    private val usageTimerOverlay by lazy { UsageTimerOverlayManager(this) }
     private val reelsCountTracker = ReelsCountTracker()
     private val reelUsageTracker = ReelUsageTracker()
     private val mindfulMessage = MindfulMessage()
@@ -168,6 +170,9 @@ class AppBlockerService : BaseBlockingService() {
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onServiceConnected() {
         super.onServiceConnected()
+        usageTimerOverlay.setup()
+        appBlocker.usageTimerOverlay = usageTimerOverlay
+        keywordBlocker.usageTimerOverlay = usageTimerOverlay
         appBlocker.setupAppBlocker(this)
         focusModeBlocker.setupFocusMode(this)
         autoDnd.setup(this)
@@ -246,6 +251,7 @@ class AppBlockerService : BaseBlockingService() {
             reelUsageTracker.onDestroy()
             websiteUsageTracker.onDestroy()
             appUsageTracker.onDestroy()
+            usageTimerOverlay.release()
 
             eventChannel.close()
             websiteObservationChannel.close()

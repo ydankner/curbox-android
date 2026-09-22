@@ -19,6 +19,7 @@ data class Settings(
     val usageTrackerIgnoredApps: List<String> = listOf(),
     val isAppUsageTrackingEnabled: Boolean = true,
     val isWebsiteUsageTrackingEnabled: Boolean = true,
+    val isUsageTimerOverlayEnabled: Boolean = false,
     val mindfulMessageConfig: MindfulMessageConfig = MindfulMessageConfig(),
     val uiHiderConfig: UiHiderConfig = UiHiderConfig(),
     val reelCounterOverlayConfig: ReelCounterOverlayConfig = ReelCounterOverlayConfig(),
