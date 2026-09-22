@@ -190,11 +190,7 @@ class AppBlocker : BaseBlocker() {
                     timerId = packageName,
                     title = service.getString(R.string.notification_title_remaining_usage)
                 )
-                usageTimerOverlay?.show(
-                    UsageTimerOverlayManager.SOURCE_APP,
-                    minRemaining,
-                    packageName
-                )
+                usageTimerOverlay?.show(UsageTimerOverlayManager.SOURCE_APP, minRemaining)
                 setUpForcedRefreshChecker("usage:$packageName", System.currentTimeMillis() + minRemaining)
             } else {
                 showNextCooldownNotification()

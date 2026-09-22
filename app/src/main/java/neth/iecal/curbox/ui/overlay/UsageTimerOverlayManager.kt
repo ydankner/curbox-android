@@ -6,6 +6,7 @@ import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -32,6 +33,7 @@ class UsageTimerOverlayManager(private val service: BaseBlockingService) {
         const val SOURCE_APP = "app"
         const val SOURCE_WEBSITE = "website"
         private const val TOP_MARGIN_DP = 40
+        private const val TAG = "UsageTimerOverlay"
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -72,18 +74,25 @@ class UsageTimerOverlayManager(private val service: BaseBlockingService) {
     }
 
     /**
-     * Shows the countdown for [source] while [packageName] is still in front. A newer call
-     * replaces the countdown shown by any source.
+     * Shows the countdown for [source]. A newer call replaces the countdown shown by any source.
+     * When [requiredForeground] is given, the call is dropped if another app is in front by the
+     * time it runs, so a late website check cannot paint over a different app.
      */
-    fun show(source: String, remainingMillis: Long, packageName: String) {
+    fun show(source: String, remainingMillis: Long, requiredForeground: String? = null) {
         if (!isEnabled || remainingMillis <= 0L) return
         handler.post {
             try {
-                val foreground = service.rootInActiveWindow?.packageName?.toString()
-                if (foreground != null && foreground != packageName) return@post
+                if (requiredForeground != null) {
+                    val foreground = service.rootInActiveWindow?.packageName?.toString()
+                    if (foreground != null && foreground != requiredForeground) {
+                        Log.d(TAG, "Skipped countdown for $source, $foreground is in front")
+                        return@post
+                    }
+                }
                 currentSource = source
                 endElapsed = SystemClock.elapsedRealtime() + remainingMillis
                 addViewIfNeeded()
+                Log.d(TAG, "Showing countdown for $source: ${remainingMillis}ms")
                 handler.removeCallbacks(ticker)
                 ticker.run()
             } catch (e: Exception) {
