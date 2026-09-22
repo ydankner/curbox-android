@@ -40,6 +40,7 @@ class UsageTimerOverlayManager(private val service: BaseBlockingService) {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var windowManager: WindowManager? = null
     private var overlayView: TextView? = null
+    private var layoutParams: WindowManager.LayoutParams? = null
     private var currentSource: String? = null
     private var endElapsed = 0L
 
@@ -53,7 +54,14 @@ class UsageTimerOverlayManager(private val service: BaseBlockingService) {
                 removeView()
                 return
             }
-            overlayView?.text = service.getString(R.string.usage_timer_overlay_text, format(remaining))
+            val view = overlayView
+            if (view != null) {
+                view.text = service.getString(R.string.usage_timer_overlay_text, format(remaining))
+                // Some launchers leave an accessibility overlay unpainted until its window is
+                // touched again, so push the params along with the new text.
+                runCatching { windowManager?.updateViewLayout(view, layoutParams) }
+                Log.d(TAG, "Tick: ${format(remaining)}")
+            }
             val untilNextSecond = remaining % 1_000L
             handler.postDelayed(this, if (untilNextSecond > 0L) untilNextSecond else 1_000L)
         }
@@ -139,6 +147,7 @@ class UsageTimerOverlayManager(private val service: BaseBlockingService) {
             ?: (service.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
                 .also { windowManager = it }
         manager.addView(view, params)
+        layoutParams = params
         overlayView = view
     }
 
@@ -147,6 +156,7 @@ class UsageTimerOverlayManager(private val service: BaseBlockingService) {
         currentSource = null
         val view = overlayView ?: return
         overlayView = null
+        layoutParams = null
         try {
             windowManager?.removeView(view)
         } catch (_: Exception) {
