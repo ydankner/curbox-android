@@ -517,12 +517,14 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
-                        android:hint="@string/hint_custom_warning">
+                        android:hint="@string/hint_custom_warning"
+                        app:helperText="@string/helper_custom_warning">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/warning_msg_edit"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content" />
+                            android:layout_height="wrap_content"
+                            android:inputType="textMultiLine|textCapSentences" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
