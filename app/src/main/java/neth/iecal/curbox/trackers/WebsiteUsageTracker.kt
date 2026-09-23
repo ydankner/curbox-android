@@ -10,6 +10,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import neth.iecal.curbox.data.db.AppDatabase
 import neth.iecal.curbox.data.db.WebsiteStatsDao
@@ -70,21 +72,24 @@ class WebsiteUsageTracker {
 
     private fun startObservingRecheckTime() {
         scope.launch {
-            service.dataStoreManager.settings.collect { settings ->
-                val enabled = settings.isWebsiteUsageTrackingEnabled
-                val wasEnabled = trackingEnabled
-                trackingEnabled = enabled
-                mainHandler.post {
-                    when {
-                        !enabled -> pauseUsageSession()
-                        !wasEnabled -> resumeUsageSession()
+            // Only these two fields are used, so unrelated settings writes must not restart the
+            // recheck job or re-run the pause and resume handling.
+            service.dataStoreManager.settings
+                .map { it.isWebsiteUsageTrackingEnabled to it.nextWebsiteRecheckTime }
+                .distinctUntilChanged()
+                .collect { (enabled, nextRecheck) ->
+                    val wasEnabled = trackingEnabled
+                    trackingEnabled = enabled
+                    mainHandler.post {
+                        when {
+                            !enabled -> pauseUsageSession()
+                            !wasEnabled -> resumeUsageSession()
+                        }
+                    }
+                    if (nextRecheck > System.currentTimeMillis()) {
+                        scheduleRecheck(nextRecheck)
                     }
                 }
-                val nextRecheck = settings.nextWebsiteRecheckTime
-                if (nextRecheck > System.currentTimeMillis()) {
-                    scheduleRecheck(nextRecheck)
-                }
-            }
         }
     }
 
