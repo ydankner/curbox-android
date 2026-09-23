@@ -22,6 +22,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import neth.iecal.curbox.Constants
@@ -79,6 +81,7 @@ class KeywordBlocker : BaseBlocker() {
     private var lastBlockedTarget = ""
     private var blockSuppressedUntil = 0L
     @Volatile private var lastWebsiteObservation: WebsiteObservation? = null
+    @Volatile private var lastScheduledRecheck = 0L
 
     fun compileKeywords(keywords: Collection<String>): Pair<List<Regex>, List<String>> =
         KeywordMatcher.compileKeywords(keywords)
@@ -227,7 +230,9 @@ class KeywordBlocker : BaseBlocker() {
             val recheck = computeNextRecheck(group)
             if (recheck > now && (soonest == 0L || recheck < soonest)) soonest = recheck
         }
-        if (soonest > now) {
+        // Writing the same deadline again would only wake every settings collector for nothing.
+        if (soonest > now && soonest != lastScheduledRecheck) {
+            lastScheduledRecheck = soonest
             CoroutineScope(Dispatchers.IO).launch {
                 service.dataStoreManager.updateNextWebsiteRecheckTime(soonest)
             }
@@ -358,46 +363,51 @@ class KeywordBlocker : BaseBlocker() {
 
         configJob?.cancel()
         configJob = CoroutineScope(Dispatchers.IO).launch {
-            service.dataStoreManager.settings.collectLatest { settings ->
-                val keywordConfig =
-                    settings.keywordBlockerConfig.upgradeLegacyKeywordGroupConfigs()
-                isTurnedOn = keywordConfig.isActive
-                isUnsupportedBrowserBlockingOn = keywordConfig.blockAllExceptSupported
-                browserBlocker.isTurnedOn = isTurnedOn
+            // Only the keyword configuration matters here. Collecting every settings change would
+            // also react to nextWebsiteRecheckTime, which this blocker writes itself, so each
+            // evaluation would immediately trigger the next one.
+            service.dataStoreManager.settings
+                .map { it.keywordBlockerConfig }
+                .distinctUntilChanged()
+                .collectLatest { rawKeywordConfig ->
+                    val keywordConfig = rawKeywordConfig.upgradeLegacyKeywordGroupConfigs()
+                    isTurnedOn = keywordConfig.isActive
+                    isUnsupportedBrowserBlockingOn = keywordConfig.blockAllExceptSupported
+                    browserBlocker.isTurnedOn = isTurnedOn
 
-                activeGroups = if (isTurnedOn) {
-                    keywordConfig.keywordGroups.filter { it.isActive }
-                } else {
-                    emptyList()
-                }
-
-                groupPatternMap = activeGroups.associate { group ->
-                    group.id to compileKeywords(group.selectedKeywords)
-                }.toMutableMap()
-
-                detectionCache.evictAll()
-
-                if (isTurnedOn) {
-                    startObservingDatabase()
-                    showNextCooldownNotification()
-                    reevaluateCurrentWebsite()
-                    Handler(Looper.getMainLooper()).post {
-                        val currentPackage =
-                            service.rootInActiveWindow?.packageName?.toString() ?: return@post
-                        val event = AccessibilityEvent.obtain(
-                            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                        )
-                        event.packageName = currentPackage
-                        checkIfUnsupportedBrowser(event)
-                        event.recycle()
+                    activeGroups = if (isTurnedOn) {
+                        keywordConfig.keywordGroups.filter { it.isActive }
+                    } else {
+                        emptyList()
                     }
-                } else {
-                    observationJob?.cancel()
-                    observationJob = null
-                    notificationManager.stopTimer()
-                    notifiedCooldownGroupId = null
+
+                    groupPatternMap = activeGroups.associate { group ->
+                        group.id to compileKeywords(group.selectedKeywords)
+                    }.toMutableMap()
+
+                    detectionCache.evictAll()
+
+                    if (isTurnedOn) {
+                        startObservingDatabase()
+                        showNextCooldownNotification()
+                        reevaluateCurrentWebsite()
+                        Handler(Looper.getMainLooper()).post {
+                            val currentPackage =
+                                service.rootInActiveWindow?.packageName?.toString() ?: return@post
+                            val event = AccessibilityEvent.obtain(
+                                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                            )
+                            event.packageName = currentPackage
+                            checkIfUnsupportedBrowser(event)
+                            event.recycle()
+                        }
+                    } else {
+                        observationJob?.cancel()
+                        observationJob = null
+                        notificationManager.stopTimer()
+                        notifiedCooldownGroupId = null
+                    }
                 }
-            }
         }
     }
 
