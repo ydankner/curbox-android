@@ -1671,6 +1671,7 @@
     <string name="warning_app_goal_complete">App goal complete for %1$s.</string>
     <string name="warning_app_goal_not_met">App goal not met. Use %2$s for %1$d more minutes today.</string>
     <string name="warning_app_goal_check_failed">App time could not be checked. Unlocking is restricted.</string>
+    <string name="access_requirement_needs_one">This opens once you do this today:</string>
     <string name="access_requirement_needs_any">This opens once you do one of these today:</string>
     <string name="access_requirement_needs_all">This opens once you do all of these today:</string>
     <string name="access_condition_anki_done">AnkiDroid finished for today</string>

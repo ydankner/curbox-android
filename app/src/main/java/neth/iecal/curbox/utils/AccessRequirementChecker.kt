@@ -75,8 +75,11 @@ class AccessRequirementChecker(
 
     private fun describe(requirement: AccessRequirement, results: List<ConditionResult>): String {
         val header = context.getString(
-            if (requirement.isAllRequired && results.size > 1) R.string.access_requirement_needs_all
-            else R.string.access_requirement_needs_any
+            when {
+                results.size == 1 -> R.string.access_requirement_needs_one
+                requirement.isAllRequired -> R.string.access_requirement_needs_all
+                else -> R.string.access_requirement_needs_any
+            }
         )
         return buildString {
             append(header)
