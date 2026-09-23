@@ -38,6 +38,7 @@ class CreateKeywordGroupFragment : Fragment() {
 
     companion object {
         const val FRAGMENT_ID = "create_keyword_group"
+        private const val STATE_ACCESS_REQUIREMENT = "access_requirement_id"
         private const val FILE_BUFFER_SIZE = 64 * 1024
         private const val KEYWORD_LIST_URL = "https://github.com/curbox-app/website_packs"
     }
@@ -51,6 +52,9 @@ class CreateKeywordGroupFragment : Fragment() {
     private var isEditing = false
     private var existingGroupId: String? = null
     private var accessRequirementId = ""
+    // Set when the choice was restored after a configuration change, so loading the saved group
+    // does not overwrite what the user picked.
+    private var isAccessRequirementRestored = false
     private var accessRequirements: List<AccessRequirement> = emptyList()
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -68,6 +72,10 @@ class CreateKeywordGroupFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        savedInstanceState?.getString(STATE_ACCESS_REQUIREMENT)?.let {
+            accessRequirementId = it
+            isAccessRequirementRestored = true
+        }
         
         binding.rvKeywords.adapter = keywordAdapter
         
@@ -97,7 +105,7 @@ class CreateKeywordGroupFragment : Fragment() {
                     }
 
                     viewModel.warningScrnConfig = group.warningScreenConfig
-                    accessRequirementId = group.accessRequirementId
+                    if (!isAccessRequirementRestored) accessRequirementId = group.accessRequirementId
                     updateAccessRequirementButton()
                 }
             }
@@ -319,6 +327,11 @@ class CreateKeywordGroupFragment : Fragment() {
 
         if (existingGroupId != null) viewModel.updateGroupById(group) else viewModel.addGroup(group)
         requireActivity().finish()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_ACCESS_REQUIREMENT, accessRequirementId)
     }
 
     override fun onDestroyView() {

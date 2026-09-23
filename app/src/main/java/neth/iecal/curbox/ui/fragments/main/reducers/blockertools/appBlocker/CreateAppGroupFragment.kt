@@ -32,6 +32,7 @@ class CreateAppGroupFragment : Fragment() {
 
     companion object {
         const val FRAGMENT_ID = "create_app_group"
+        private const val STATE_ACCESS_REQUIREMENT = "access_requirement_id"
     }
 
     private var _binding: FragmentCreateAppGroupBinding? = null
@@ -55,6 +56,9 @@ class CreateAppGroupFragment : Fragment() {
 
     private var isDeleting = false
     private var accessRequirementId = ""
+    // Set when the choice was restored after a configuration change, so loading the saved group
+    // does not overwrite what the user picked.
+    private var isAccessRequirementRestored = false
     private var accessRequirements: List<AccessRequirement> = emptyList()
 
     override fun onCreateView(
@@ -67,6 +71,10 @@ class CreateAppGroupFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        savedInstanceState?.getString(STATE_ACCESS_REQUIREMENT)?.let {
+            accessRequirementId = it
+            isAccessRequirementRestored = true
+        }
 
         var isEditing = false
         val groupId = requireActivity().intent.getStringExtra("group_id") ?: arguments?.getString("group_id")
@@ -103,7 +111,7 @@ class CreateAppGroupFragment : Fragment() {
                             viewModel.currentUsageConfig = config.usage
                         }
                         viewModel.warningScrnConfig = group.warningScreenConfig
-                        accessRequirementId = group.accessRequirementId
+                        if (!isAccessRequirementRestored) accessRequirementId = group.accessRequirementId
                         updateAccessRequirementButton()
                     }
                 }
@@ -251,6 +259,11 @@ class CreateAppGroupFragment : Fragment() {
             parentFragmentManager,
             UsageBasedSettingsFragment.FRAGMENT_ID
         )
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_ACCESS_REQUIREMENT, accessRequirementId)
     }
 
     override fun onDestroyView() {

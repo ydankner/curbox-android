@@ -1703,7 +1703,7 @@
     <string name="access_requirement_in_use">Groups still use this requirement. Choose another one for them first.</string>
     <string name="access_requirement_summary_any">Any of: %1$s</string>
     <string name="access_requirement_summary_all">All of: %1$s</string>
-    <string name="group_access_section_title">Before access</string>
+    <string name="group_access_section_title">BEFORE ACCESS</string>
     <string name="group_access_requirement_none">No requirement</string>
     <string name="group_access_requirement_button">Requirement: %1$s</string>
     <string name="group_access_requirement_pick">Require this first</string>
