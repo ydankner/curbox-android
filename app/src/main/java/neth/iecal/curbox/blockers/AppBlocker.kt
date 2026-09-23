@@ -124,7 +124,9 @@ class AppBlocker : BaseBlocker() {
         }
 
         clearFinishedOnEachOpenSessions(packageName)
-        usageTimerOverlay?.hide()
+        // Only drop this blocker's countdown. A website countdown belongs to the browser that is
+        // being opened here, and the keyword blocker hides it when that browser is left.
+        usageTimerOverlay?.hide(UsageTimerOverlayManager.SOURCE_APP)
 
         val now = System.currentTimeMillis()
 
