@@ -14,6 +14,7 @@ import neth.iecal.curbox.R
 import neth.iecal.curbox.data.models.AppBlockerWarningScreenConfig
 import neth.iecal.curbox.data.models.ManualFocusGroup
 import neth.iecal.curbox.databinding.FragmentWarningConfigBinding
+import neth.iecal.curbox.utils.WarningMessages
 
 internal class WarningConfigFormController(
     private val fragment: Fragment,
@@ -124,7 +125,7 @@ internal class WarningConfigFormController(
         )
         updateProceedWindowInput(initialInputValue)
 
-        binding.warningMsgEdit.setText(config.message.joinToString(", "))
+        binding.warningMsgEdit.setText(WarningMessages.format(config.message))
         binding.switchVibrateBrightness.isChecked = config.vibrateAndIncBrightness
     }
 
@@ -257,10 +258,7 @@ internal class WarningConfigFormController(
             selectedSecondaryIndex(selectedChallengeIndex())
         )
         return AppBlockerWarningScreenConfig(
-            message = binding.warningMsgEdit.text.toString()
-                .split(",")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() },
+            message = WarningMessages.parse(binding.warningMsgEdit.text.toString()),
 
             timeInterval = numericInputValue(binding.fixedTimeInput) * 60_000L,
             isDynamicIntervalSettingAllowed = flags.isDynamicIntervalSettingAllowed,

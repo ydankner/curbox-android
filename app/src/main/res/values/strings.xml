@@ -532,6 +532,7 @@
     <string name="hint_unlock_method">Unlock Method</string>
     <string name="hint_required_sentence">Required Sentence</string>
     <string name="hint_custom_warning">Custom Warning Message</string>
+    <string name="helper_custom_warning">One message per line. A random one is shown each time.</string>
     <string name="hint_add_website">Add website or keyword</string>
     <string name="desc_previous_week">Previous week</string>
     <string name="desc_next_week">Next week</string>
