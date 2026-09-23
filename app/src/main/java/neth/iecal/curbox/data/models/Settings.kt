@@ -2,6 +2,7 @@ package neth.iecal.curbox.data.models
 
 data class Settings(
     val blockedAppGroups: List<AppGroup> = listOf(),
+    val accessRequirements: List<AccessRequirement> = listOf(),
     val manualFocusGroups: List<ManualFocusGroup> = listOf(),
     val autoDndGroups: List<AutoDndGroup> = listOf(),
     /**

@@ -196,6 +196,7 @@ class AppBlockerService : BaseBlockingService() {
         }
         appUsageTracker.setup(this)
         appBlocker.liveUsage = appUsageTracker::uncommittedUsageSince
+        keywordBlocker.liveUsage = appUsageTracker::uncommittedUsageSince
         neth.iecal.curbox.utils.UsageStatsCleaner.watch(this)
 
         focusModeBlocker.setupReceivers()

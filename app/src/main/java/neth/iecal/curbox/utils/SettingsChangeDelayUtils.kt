@@ -44,6 +44,7 @@ object SettingsChangeDelayUtils {
                 GatedSettingsField.UI_HIDER -> R.string.change_delay_field_ui_hider
                 GatedSettingsField.APP_USAGE_TRACKING -> R.string.app_usage_tracking
                 GatedSettingsField.WEBSITE_USAGE_TRACKING -> R.string.website_usage_tracking
+                GatedSettingsField.ACCESS_REQUIREMENTS -> R.string.change_delay_field_access_requirements
                 GatedSettingsField.CHANGE_DELAY, null -> R.string.change_delay_field_change_delay
             }
         )

@@ -30,6 +30,7 @@ import neth.iecal.curbox.Constants
 import neth.iecal.curbox.R
 import neth.iecal.curbox.data.db.AppDatabase
 import neth.iecal.curbox.data.db.WebsiteStatsEntity
+import neth.iecal.curbox.data.models.AccessRequirement
 import neth.iecal.curbox.data.models.AppUsageConfig
 import neth.iecal.curbox.data.models.FocusBlockMode
 import neth.iecal.curbox.data.models.KeywordGroup
@@ -38,6 +39,7 @@ import neth.iecal.curbox.services.BaseBlockingService
 import neth.iecal.curbox.trackers.WebsiteObservation
 import neth.iecal.curbox.ui.activity.WarningActivity
 import neth.iecal.curbox.ui.overlay.UsageTimerOverlayManager
+import neth.iecal.curbox.utils.AccessRequirementChecker
 import neth.iecal.curbox.utils.ActiveTimeGroupWindow
 import neth.iecal.curbox.utils.KeywordMatcher
 import neth.iecal.curbox.utils.TimerNotification
@@ -85,6 +87,14 @@ class KeywordBlocker : BaseBlocker() {
     @Volatile private var lastScheduledRecheck = 0L
 
     var usageTimerOverlay: UsageTimerOverlayManager? = null
+
+    /** Foreground time not yet written by AppUsageTracker; (package, sinceMs) -> millis. */
+    var liveUsage: ((String, Long) -> Long)? = null
+
+    @Volatile private var accessRequirements: Map<String, AccessRequirement> = emptyMap()
+    private val requirementChecker by lazy {
+        AccessRequirementChecker(service) { pkg, sinceMs -> liveUsage?.invoke(pkg, sinceMs) ?: 0L }
+    }
 
     fun compileKeywords(keywords: Collection<String>): Pair<List<Regex>, List<String>> =
         KeywordMatcher.compileKeywords(keywords)
@@ -224,6 +234,19 @@ class KeywordBlocker : BaseBlocker() {
             true
         }
 
+        // A group with an unmet requirement stays closed however much of its limit is left.
+        for (group in eligible) {
+            val requirement = accessRequirements[group.accessRequirementId] ?: continue
+            if (group.config?.schedule?.activeWindow(now) == null) continue
+            val status = requirementChecker.check(requirement, now)
+            if (!status.isMet) {
+                usageTimerOverlay?.hide(UsageTimerOverlayManager.SOURCE_WEBSITE)
+                if (!claimBlock(packageName, urlIdentifier, group.id)) return
+                handleBlocking(group, status.details)
+                return
+            }
+        }
+
         for (group in eligible) {
             val window = group.config?.schedule?.activeWindow(now) ?: continue
             if (isUsageLimitExceeded(group, window)) {
@@ -258,7 +281,10 @@ class KeywordBlocker : BaseBlocker() {
             val config = group.config ?: return@mapNotNull null
             val window = config.schedule.activeWindow(now) ?: return@mapNotNull null
             val limit = limitForToday(config.usage) * 60_000L
-            if (limit <= 0L) null else limit - groupUsage(group, window)
+            if (limit <= 0L) return@mapNotNull null
+            val remaining = limit - groupUsage(group, window)
+            // A limit that cannot run out before the schedule ends needs no countdown.
+            if (remaining < window.endMs - now) remaining else null
         }.minOrNull()
         if (remaining != null && remaining > 0L) {
             overlay.show(UsageTimerOverlayManager.SOURCE_WEBSITE, remaining, packageName)
@@ -286,7 +312,7 @@ class KeywordBlocker : BaseBlocker() {
     private fun blockTarget(packageName: String, urlIdentifier: String, groupId: String): String =
         "$groupId\u0000$packageName\u0000$urlIdentifier"
 
-    private fun handleBlocking(group: KeywordGroup) {
+    private fun handleBlocking(group: KeywordGroup, requirementStatus: String? = null) {
         Thread.sleep(250)
         service.pressBack()
         service.pressHome()
@@ -294,12 +320,19 @@ class KeywordBlocker : BaseBlocker() {
 
         if (group.warningScreenConfig.isWarningDialogHidden) return
 
+        // Nothing can be unlocked while the requirement is unmet.
+        val warningConfig = if (requirementStatus != null) {
+            group.warningScreenConfig.copy(isProceedDisabled = true)
+        } else {
+            group.warningScreenConfig
+        }
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(service, WarningActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra("mode", Constants.WARNING_SCREEN_MODE_KEYWORD_BLOCKER)
                 putExtra("result_id", group.id)
-                putExtra("warning_config", Gson().toJson(group.warningScreenConfig))
+                putExtra("warning_config", Gson().toJson(warningConfig))
+                requirementStatus?.let { putExtra(Constants.EXTRA_ACCESS_REQUIREMENT_STATUS, it) }
             }
             service.startActivity(intent)
         }, 300)
@@ -391,13 +424,14 @@ class KeywordBlocker : BaseBlocker() {
 
         configJob?.cancel()
         configJob = CoroutineScope(Dispatchers.IO).launch {
-            // Only the keyword configuration matters here. Collecting every settings change would
-            // also react to nextWebsiteRecheckTime, which this blocker writes itself, so each
-            // evaluation would immediately trigger the next one.
+            // Only the keyword configuration and the requirements matter here. Collecting every
+            // settings change would also react to nextWebsiteRecheckTime, which this blocker writes
+            // itself, so each evaluation would immediately trigger the next one.
             service.dataStoreManager.settings
-                .map { it.keywordBlockerConfig }
+                .map { it.keywordBlockerConfig to it.accessRequirements }
                 .distinctUntilChanged()
-                .collectLatest { rawKeywordConfig ->
+                .collectLatest { (rawKeywordConfig, requirements) ->
+                    accessRequirements = requirements.associateBy { it.id }
                     val keywordConfig = rawKeywordConfig.upgradeLegacyKeywordGroupConfigs()
                     isTurnedOn = keywordConfig.isActive
                     isUnsupportedBrowserBlockingOn = keywordConfig.blockAllExceptSupported

@@ -107,6 +107,8 @@ class FragmentActivity : AppCompatActivity() {
             AntiUninstallFragment.FRAGMENT_ID,
             ServiceProtectionFragment.FRAGMENT_ID,
             SettingsChangeDelayFragment.FRAGMENT_ID,
+            neth.iecal.curbox.ui.fragments.main.reducers.accessRequirements.AccessRequirementsFragment.FRAGMENT_ID,
+            neth.iecal.curbox.ui.fragments.main.reducers.accessRequirements.AccessRequirementEditorFragment.FRAGMENT_ID,
             CreateKeywordGroupFragment.FRAGMENT_ID -> {
                 // Hide bottom nav for these standalone fragments
                 bottomNav.visibility = android.view.View.GONE
@@ -118,6 +120,8 @@ class FragmentActivity : AppCompatActivity() {
                     ReelBlockerFragment.FRAGMENT_ID -> ReelBlockerFragment()
                     KeywordBlockerFragment.FRAGMENT_ID -> KeywordBlockerFragment()
                     CreateKeywordGroupFragment.FRAGMENT_ID -> CreateKeywordGroupFragment()
+                    neth.iecal.curbox.ui.fragments.main.reducers.accessRequirements.AccessRequirementsFragment.FRAGMENT_ID -> neth.iecal.curbox.ui.fragments.main.reducers.accessRequirements.AccessRequirementsFragment()
+                    neth.iecal.curbox.ui.fragments.main.reducers.accessRequirements.AccessRequirementEditorFragment.FRAGMENT_ID -> neth.iecal.curbox.ui.fragments.main.reducers.accessRequirements.AccessRequirementEditorFragment()
                     UiHiderFragment.FRAGMENT_ID -> UiHiderFragment()
                     UiHiderEditorFragment.FRAGMENT_ID -> UiHiderEditorFragment()
                     AutoDndFragment.FRAGMENT_ID -> AutoDndFragment()

@@ -18,6 +18,16 @@
         android:textStyle="bold" />
 
     <TextView
+        android:id="@+id/access_requirement_status"
+        style="@style/TextAppearance.Material3.BodyLarge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:lineSpacingExtra="4dp"
+        android:visibility="gone"
+        tools:text="This opens once you do one of these today:\n• Finish AnkiDroid (14 cards left)\n• Use Day One for 5 min (2 min so far)" />
+
+    <TextView
         android:id="@+id/proceeds_left"
         style="@style/TextAppearance.Material3.BodyMedium"
         android:layout_width="match_parent"
@@ -103,16 +113,6 @@
         android:gravity="center"
         android:visibility="gone"
         tools:text="App goal not met. Use AnkiDroid for 10 more minutes today." />
-
-    <TextView
-        android:id="@+id/anki_clear_status"
-        style="@style/TextAppearance.Material3.BodyLarge"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:gravity="center"
-        android:visibility="gone"
-        tools:text="You still have 12 Anki cards to study today." />
 
     <TextView
         android:id="@+id/typing_target_sentence"

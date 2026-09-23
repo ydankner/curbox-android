@@ -11,5 +11,8 @@ class Constants {
         const val WARNING_SCREEN_MODE_APP_BLOCKER = 2
         const val WARNING_SCREEN_MODE_KEYWORD_BLOCKER = 3
 
+        // What is still missing from the access requirement that caused the block
+        const val EXTRA_ACCESS_REQUIREMENT_STATUS = "access_requirement_status"
+
     }
 }

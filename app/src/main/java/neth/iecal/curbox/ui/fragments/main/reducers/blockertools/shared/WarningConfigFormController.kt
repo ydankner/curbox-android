@@ -18,8 +18,7 @@ import neth.iecal.curbox.databinding.FragmentWarningConfigBinding
 internal class WarningConfigFormController(
     private val fragment: Fragment,
     private val binding: FragmentWarningConfigBinding,
-    private val onEachOpenChanged: () -> Unit,
-    private val onAnkiRequirementEnabled: () -> Unit = {}
+    private val onEachOpenChanged: () -> Unit
 ) {
     private var supportsOnEachOpen = false
     private val warningChallengeOptions by lazy {
@@ -103,8 +102,6 @@ internal class WarningConfigFormController(
         selectedAppGoalPackage = config.appGoalPackageName
         binding.appGoalRequirementSwitch.isChecked = config.isAppGoalRequirementEnabled
         binding.appGoalSetupContainer.isVisible = config.isAppGoalRequirementEnabled
-        binding.ankiClearRequirementSwitch.isChecked = config.isAnkiClearRequirementEnabled
-        binding.ankiClearRequirementDesc.isVisible = config.isAnkiClearRequirementEnabled
 
         val fixedTimeMinutes = (config.timeInterval / 60_000L).coerceAtLeast(1L)
         binding.fixedTimeSlider.value = fixedTimeMinutes.toFloat().coerceAtMost(120f)
@@ -264,10 +261,6 @@ internal class WarningConfigFormController(
                 binding.appGoalAppLayout.error = null
             }
         }
-        binding.ankiClearRequirementSwitch.setOnCheckedChangeListener { _, isChecked ->
-            binding.ankiClearRequirementDesc.isVisible = isChecked
-            if (isChecked) onAnkiRequirementEnabled()
-        }
         binding.advancedSettingsHeader.setOnClickListener {
             val isCurrentlyVisible = binding.advancedSettingsContent.isVisible
             TransitionManager.beginDelayedTransition(
@@ -325,7 +318,6 @@ internal class WarningConfigFormController(
                 ""
             },
             appGoalRequiredMinutes = numericInputValue(binding.appGoalMinutesInput).toInt(),
-            isAnkiClearRequirementEnabled = binding.ankiClearRequirementSwitch.isChecked,
             proceedDelayInSecs = numericInputValue(binding.proceedDelayInput).toInt(),
             vibrateAndIncBrightness = binding.switchVibrateBrightness.isChecked,
             proceedLimitEnabled = binding.proceedLimitSwitch.isChecked,

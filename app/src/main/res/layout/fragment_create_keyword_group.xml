@@ -114,6 +114,28 @@
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
             <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:letterSpacing="0.1"
+                android:text="@string/group_access_section_title"
+                android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_access_requirement"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="60dp"
+                android:layout_marginBottom="24dp"
+                android:text="@string/group_access_requirement_none"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                app:backgroundTint="?attr/colorSurfaceContainer"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/baseline_lock_24"
+                app:iconTint="?attr/colorOnSurfaceVariant" />
+
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"

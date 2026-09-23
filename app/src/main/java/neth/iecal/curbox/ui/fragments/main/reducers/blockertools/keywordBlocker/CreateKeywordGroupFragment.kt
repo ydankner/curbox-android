@@ -19,10 +19,14 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import neth.iecal.curbox.R
+import neth.iecal.curbox.data.models.AccessRequirement
 import neth.iecal.curbox.data.models.AppBlockerWarningScreenConfig
 import neth.iecal.curbox.data.models.KeywordGroup
 import neth.iecal.curbox.data.models.ScheduledUsageConfig
 import neth.iecal.curbox.databinding.FragmentCreateKeywordGroupBinding
+import neth.iecal.curbox.ui.fragments.main.reducers.accessRequirements.pickAccessRequirement
+import neth.iecal.curbox.ui.fragments.main.reducers.accessRequirements.requirementButtonText
+import neth.iecal.curbox.utils.DataStoreManager
 import neth.iecal.curbox.utils.KeywordFileCodec
 import java.io.BufferedReader
 import java.io.BufferedWriter
@@ -46,6 +50,8 @@ class CreateKeywordGroupFragment : Fragment() {
     private val keywordAdapter by lazy { KeywordAdapter() }
     private var isEditing = false
     private var existingGroupId: String? = null
+    private var accessRequirementId = ""
+    private var accessRequirements: List<AccessRequirement> = emptyList()
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { importKeywordsFromFile(it) }
@@ -91,12 +97,26 @@ class CreateKeywordGroupFragment : Fragment() {
                     }
 
                     viewModel.warningScrnConfig = group.warningScreenConfig
+                    accessRequirementId = group.accessRequirementId
+                    updateAccessRequirementButton()
                 }
             }
         }
     }
 
     private fun setupListeners() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            DataStoreManager(requireContext()).settingsForEditing.collectLatest { settings ->
+                accessRequirements = settings.accessRequirements
+                updateAccessRequirementButton()
+            }
+        }
+        binding.btnAccessRequirement.setOnClickListener {
+            pickAccessRequirement(accessRequirements, accessRequirementId) { picked ->
+                accessRequirementId = picked
+                updateAccessRequirementButton()
+            }
+        }
         binding.btnAddKeyword.setOnClickListener {
             val kw = binding.etKeyword.text.toString().trim()
             if (kw.isNotEmpty() && selectedKeywords.add(kw)) {
@@ -264,6 +284,12 @@ class CreateKeywordGroupFragment : Fragment() {
         override fun getItemCount() = items.size
     }
 
+    private fun updateAccessRequirementButton() {
+        val binding = _binding ?: return
+        binding.btnAccessRequirement.text =
+            requireContext().requirementButtonText(accessRequirements, accessRequirementId)
+    }
+
     private fun saveGroup() {
         val name = binding.etGroupName.text.toString().trim()
         if (name.isEmpty()) {
@@ -287,7 +313,8 @@ class CreateKeywordGroupFragment : Fragment() {
             ),
             isActive = existing?.isActive ?: true,
             temporarilyDisabledUntilMs = existing?.temporarilyDisabledUntilMs ?: 0L,
-            warningScreenConfig = viewModel.warningScrnConfig.copy(isOnOpenConfig = false)
+            warningScreenConfig = viewModel.warningScrnConfig.copy(isOnOpenConfig = false),
+            accessRequirementId = accessRequirementId
         )
 
         if (existingGroupId != null) viewModel.updateGroupById(group) else viewModel.addGroup(group)

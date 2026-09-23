@@ -16,11 +16,15 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
 import neth.iecal.curbox.R
+import neth.iecal.curbox.data.models.AccessRequirement
 import neth.iecal.curbox.data.models.AppBlockerWarningScreenConfig
 import neth.iecal.curbox.data.models.AppGroup
 import neth.iecal.curbox.data.models.AppGroupConfig
 import neth.iecal.curbox.databinding.FragmentCreateAppGroupBinding
 import neth.iecal.curbox.ui.activity.SelectAppsActivity
+import neth.iecal.curbox.ui.fragments.main.reducers.accessRequirements.pickAccessRequirement
+import neth.iecal.curbox.ui.fragments.main.reducers.accessRequirements.requirementButtonText
+import neth.iecal.curbox.utils.DataStoreManager
 import neth.iecal.curbox.utils.scheduleConflictsWith
 import java.util.UUID
 
@@ -50,6 +54,8 @@ class CreateAppGroupFragment : Fragment() {
     }
 
     private var isDeleting = false
+    private var accessRequirementId = ""
+    private var accessRequirements: List<AccessRequirement> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -97,8 +103,23 @@ class CreateAppGroupFragment : Fragment() {
                             viewModel.currentUsageConfig = config.usage
                         }
                         viewModel.warningScrnConfig = group.warningScreenConfig
+                        accessRequirementId = group.accessRequirementId
+                        updateAccessRequirementButton()
                     }
                 }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            DataStoreManager(requireContext()).settingsForEditing.collectLatest { settings ->
+                accessRequirements = settings.accessRequirements
+                updateAccessRequirementButton()
+            }
+        }
+        binding.btnAccessRequirement.setOnClickListener {
+            pickAccessRequirement(accessRequirements, accessRequirementId) { picked ->
+                accessRequirementId = picked
+                updateAccessRequirementButton()
             }
         }
 
@@ -168,7 +189,8 @@ class CreateAppGroupFragment : Fragment() {
                 if (isEditingRecord && targetExistingGroup != null) targetExistingGroup.isActive
                 else true,
             temporarilyDisabledUntilMs = targetExistingGroup?.temporarilyDisabledUntilMs ?: 0L,
-            warningScreenConfig = viewModel.warningScrnConfig
+            warningScreenConfig = viewModel.warningScrnConfig,
+            accessRequirementId = accessRequirementId
         )
 
         val conflicts = newGroup.scheduleConflictsWith(viewModel.groups.value)
@@ -201,6 +223,12 @@ class CreateAppGroupFragment : Fragment() {
 
         Toast.makeText(requireContext(), getString(R.string.group_saved_successfully), Toast.LENGTH_SHORT).show()
         requireActivity().finish()
+    }
+
+    private fun updateAccessRequirementButton() {
+        val binding = _binding ?: return
+        binding.btnAccessRequirement.text =
+            requireContext().requirementButtonText(accessRequirements, accessRequirementId)
     }
 
     private fun openAppSelector() {

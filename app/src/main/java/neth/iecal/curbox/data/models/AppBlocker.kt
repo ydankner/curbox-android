@@ -9,6 +9,8 @@ data class AppGroup(
     /** Non-zero only while the group is using the opt-in temporary-disable escape hatch. */
     val temporarilyDisabledUntilMs: Long = 0L,
     val warningScreenConfig : AppBlockerWarningScreenConfig = AppBlockerWarningScreenConfig(),
+    /** Id of the [AccessRequirement] that must be met before these apps open, or empty for none. */
+    val accessRequirementId: String = "",
     // Kept only so settings written by older versions can be migrated.
     @Deprecated("Use config")
     val blockingType: AppBlockingType = AppBlockingType.Usage, // "USAGE" or "TIME"

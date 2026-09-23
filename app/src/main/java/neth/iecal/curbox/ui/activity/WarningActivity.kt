@@ -32,7 +32,6 @@ import neth.iecal.curbox.data.models.AppBlockerWarningScreenConfig
 import neth.iecal.curbox.databinding.DialogWarningOverlayBinding
 import neth.iecal.curbox.utils.DataStoreManager
 import neth.iecal.curbox.utils.FocusGoalProgress
-import neth.iecal.curbox.utils.AnkiCardQueue
 import neth.iecal.curbox.utils.UsageStatsHelper
 import java.util.Calendar
 import kotlin.random.Random
@@ -66,8 +65,6 @@ class WarningActivity : AppCompatActivity() {
     private var isFocusGoalVerified = true
     private var isAppGoalRequired = false
     private var isAppGoalVerified = true
-    private var isAnkiClearRequired = false
-    private var isAnkiClearVerified = true
     private var isPrimaryUnlockActionReady = false
 
     private lateinit var binding: DialogWarningOverlayBinding
@@ -162,14 +159,6 @@ class WarningActivity : AppCompatActivity() {
             !isProceedLimitExceeded
         ) {
             setupAppGoalRequirement(warningScreenConfig)
-        }
-        isAnkiClearRequired = warningScreenConfig.isAnkiClearRequirementEnabled
-        isAnkiClearVerified = !isAnkiClearRequired
-        if (isAnkiClearRequired &&
-            !warningScreenConfig.isProceedDisabled &&
-            !isProceedLimitExceeded
-        ) {
-            setupAnkiClearRequirement()
         }
         val isHomePressRequested = intent.getBooleanExtra("is_press_home", false)
         binding.minsPicker.setValue(3)
@@ -305,6 +294,10 @@ class WarningActivity : AppCompatActivity() {
             .show()
 
         binding.warningMsg.text = warningScreenConfig.message.random()
+        intent.getStringExtra(Constants.EXTRA_ACCESS_REQUIREMENT_STATUS)?.let { status ->
+            binding.accessRequirementStatus.text = status
+            binding.accessRequirementStatus.visibility = View.VISIBLE
+        }
 
         if (warningScreenConfig.isOnOpenConfig) {
             binding.minsPicker.visibility = View.GONE
@@ -334,9 +327,6 @@ class WarningActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             if (isAppGoalRequired && !isAppGoalVerified) {
-                return@setOnClickListener
-            }
-            if (isAnkiClearRequired && !isAnkiClearVerified) {
                 return@setOnClickListener
             }
 
@@ -548,8 +538,7 @@ class WarningActivity : AppCompatActivity() {
         isPrimaryUnlockActionReady = isReady
         binding.btnProceed.isEnabled = isReady &&
             (!isFocusGoalRequired || isFocusGoalVerified) &&
-            (!isAppGoalRequired || isAppGoalVerified) &&
-            (!isAnkiClearRequired || isAnkiClearVerified)
+            (!isAppGoalRequired || isAppGoalVerified)
     }
 
     private fun setupFocusGoalRequirement(config: AppBlockerWarningScreenConfig) {
@@ -676,41 +665,6 @@ class WarningActivity : AppCompatActivity() {
 
     private fun restrictAppGoal(message: String) {
         binding.appGoalStatus.text = message
-        binding.btnProceed.visibility = View.GONE
-        binding.btnCancel.setText(R.string.okay)
-    }
-
-    private fun setupAnkiClearRequirement() {
-        binding.ankiClearStatus.visibility = View.VISIBLE
-        binding.ankiClearStatus.setText(R.string.warning_anki_clear_checking)
-        setPrimaryUnlockActionReady(isPrimaryUnlockActionReady)
-
-        lifecycleScope.launch {
-            try {
-                val remaining = withContext(Dispatchers.IO) {
-                    AnkiCardQueue.remainingCards(applicationContext)
-                }
-                when {
-                    remaining == null ->
-                        restrictAnkiClear(getString(R.string.warning_anki_clear_unavailable))
-                    remaining > 0 ->
-                        restrictAnkiClear(getString(R.string.warning_anki_clear_left, remaining))
-                    else -> {
-                        isAnkiClearVerified = true
-                        binding.ankiClearStatus.setText(R.string.warning_anki_clear_done)
-                        setPrimaryUnlockActionReady(isPrimaryUnlockActionReady)
-                    }
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                restrictAnkiClear(getString(R.string.warning_anki_clear_unavailable))
-            }
-        }
-    }
-
-    private fun restrictAnkiClear(message: String) {
-        binding.ankiClearStatus.text = message
         binding.btnProceed.visibility = View.GONE
         binding.btnCancel.setText(R.string.okay)
     }

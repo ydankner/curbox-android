@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import neth.iecal.curbox.Constants
 import neth.iecal.curbox.R
+import neth.iecal.curbox.data.models.AccessRequirement
 import neth.iecal.curbox.data.models.AppBlockerWarningScreenConfig
 import neth.iecal.curbox.data.models.AppGroupConfig
 import neth.iecal.curbox.data.models.AppUsageConfig
@@ -26,6 +27,7 @@ import neth.iecal.curbox.data.models.upgradeLegacyAppGroupConfigs
 import neth.iecal.curbox.services.BaseBlockingService
 import neth.iecal.curbox.ui.activity.WarningActivity
 import neth.iecal.curbox.ui.overlay.UsageTimerOverlayManager
+import neth.iecal.curbox.utils.AccessRequirementChecker
 import neth.iecal.curbox.utils.AppSuspendHelper
 import neth.iecal.curbox.utils.ShizukuRunner
 import neth.iecal.curbox.utils.TimerNotification
@@ -69,7 +71,8 @@ class AppBlocker : BaseBlocker() {
         val groupId: String,
         val config: AppGroupConfig,
         val groupPackages: List<String>,
-        val warningConfig: AppBlockerWarningScreenConfig
+        val warningConfig: AppBlockerWarningScreenConfig,
+        val accessRequirementId: String
     )
 
     private val blockedAppsList = ConcurrentHashMap<String, MutableList<AppGroupEntry>>()
@@ -95,6 +98,11 @@ class AppBlocker : BaseBlocker() {
 
     /** Foreground time not yet written by AppUsageTracker; (package, windowStartMs) -> millis. */
     var liveUsage: ((String, Long) -> Long)? = null
+
+    @Volatile private var accessRequirements: Map<String, AccessRequirement> = emptyMap()
+    private val requirementChecker by lazy {
+        AccessRequirementChecker(service) { pkg, sinceMs -> liveUsage?.invoke(pkg, sinceMs) ?: 0L }
+    }
 
     private val ignoredApps = mutableListOf("com.android.systemui")
 
@@ -131,6 +139,23 @@ class AppBlocker : BaseBlocker() {
         val now = System.currentTimeMillis()
 
         blockedAppsList[packageName]?.let { entries ->
+            // A group with an unmet requirement stays closed however much of its limit is left.
+            for (entry in entries) {
+                val requirement = accessRequirements[entry.accessRequirementId] ?: continue
+                if (entry.config.schedule.activeWindow(now) == null) continue
+                val status = requirementChecker.check(requirement, now)
+                if (!status.isMet) {
+                    notificationManager.stopTimer()
+                    showWarningScreen(
+                        packageName,
+                        entry.groupId,
+                        entry.warningConfig.copy(isProceedDisabled = true, isOnOpenConfig = false),
+                        status.details
+                    )
+                    return
+                }
+            }
+
             for (entry in entries) {
                 if (!entry.warningConfig.isOnOpenConfig ||
                     isGroupInCooldown(entry.groupId, now)
@@ -184,7 +209,9 @@ class AppBlocker : BaseBlocker() {
                     showWarningScreen(packageName, entry.groupId, entry.warningConfig)
                     return
                 }
-                if (remainingUsage < minRemaining) minRemaining = remainingUsage
+                // A limit that cannot run out before the schedule ends needs no countdown.
+                val canRunOut = remainingUsage < activeWindow.endMs - now
+                if (canRunOut && remainingUsage < minRemaining) minRemaining = remainingUsage
                 setUpForcedRefreshChecker(
                     "schedule:${entry.groupId}:$packageName",
                     activeWindow.endMs
@@ -276,7 +303,8 @@ class AppBlocker : BaseBlocker() {
                             group.id,
                             config,
                             groupPackages,
-                            group.warningScreenConfig
+                            group.warningScreenConfig,
+                            group.accessRequirementId
                         )
                         groupPackages.forEach { pkg ->
                             newBlockedAppsList.getOrPut(pkg) { mutableListOf() }.add(entry)
@@ -285,6 +313,8 @@ class AppBlocker : BaseBlocker() {
                         Log.e("AppBlocker", "Error loading group ${group.name}", e)
                     }
                 }
+
+                accessRequirements = settings.accessRequirements.associateBy { it.id }
 
                 // Atomic-like update of the maps
                 blockedAppsList.clear()
@@ -437,7 +467,12 @@ class AppBlocker : BaseBlocker() {
         handler.postDelayed(runnable, delayMillis)
     }
 
-    private fun showWarningScreen(packageName: String, groupId: String, warningConfig: AppBlockerWarningScreenConfig) {
+    private fun showWarningScreen(
+        packageName: String,
+        groupId: String,
+        warningConfig: AppBlockerWarningScreenConfig,
+        requirementStatus: String? = null
+    ) {
         if (service.isDelayOver(1000)) {
 
             // Remember the warning that was shown so the cooldown intent can read its default duration
@@ -472,6 +507,7 @@ class AppBlocker : BaseBlocker() {
                         "warning_config",
                         Gson().toJson(warningConfig)
                     )
+                    requirementStatus?.let { putExtra(Constants.EXTRA_ACCESS_REQUIREMENT_STATUS, it) }
                 }
                 service.startActivity(dialogIntent)
             }, 100)

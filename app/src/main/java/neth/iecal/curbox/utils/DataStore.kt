@@ -156,6 +156,10 @@ class DataStoreManager(private val context: Context) {
         updateGated(GatedSettingsField.APP_GROUPS) { newGroups }
     }
 
+    suspend fun updateAccessRequirements(requirements: List<neth.iecal.curbox.data.models.AccessRequirement>) {
+        updateGated(GatedSettingsField.ACCESS_REQUIREMENTS) { requirements }
+    }
+
     suspend fun updateManualFocusGroups(newGroup: List<ManualFocusGroup>){
         settingsDataStore.updateData { it.copy(manualFocusGroups = newGroup) }
     }
@@ -206,6 +210,7 @@ class DataStoreManager(private val context: Context) {
             // restored to its local value and considered independently below.
             var updated = remoteWithLocalRuntime.copy(
                 blockedAppGroups = current.blockedAppGroups,
+                accessRequirements = current.accessRequirements,
                 manualFocusGroups = current.manualFocusGroups,
                 autoDndGroups = current.autoDndGroups,
                 activeManualFocusGroupId = current.activeManualFocusGroupId,
@@ -700,6 +705,12 @@ class DataStoreManager(private val context: Context) {
                 GatedSettingsField.WEBSITE_USAGE_TRACKING -> settings.copy(
                     isWebsiteUsageTrackingEnabled = gson.fromJson(valueJson, Boolean::class.java)
                 )
+                GatedSettingsField.ACCESS_REQUIREMENTS -> settings.copy(
+                    accessRequirements = gson.fromJson(
+                        valueJson,
+                        object : TypeToken<List<neth.iecal.curbox.data.models.AccessRequirement>>() {}.type
+                    )
+                )
                 GatedSettingsField.CHANGE_DELAY -> {
                     val prefs = gson.fromJson(valueJson, SettingsChangeDelayPrefs::class.java)
                     settings.copy(settingsChangeDelayConfig2 = settings.settingsChangeDelayConfig2.copy(
@@ -725,6 +736,7 @@ class DataStoreManager(private val context: Context) {
                 GatedSettingsField.UI_HIDER -> settings.uiHiderConfig
                 GatedSettingsField.APP_USAGE_TRACKING -> settings.isAppUsageTrackingEnabled
                 GatedSettingsField.WEBSITE_USAGE_TRACKING -> settings.isWebsiteUsageTrackingEnabled
+                GatedSettingsField.ACCESS_REQUIREMENTS -> settings.accessRequirements
                 GatedSettingsField.CHANGE_DELAY -> SettingsChangeDelayPrefs(
                     isEnabled = settings.settingsChangeDelayConfig2.isEnabled,
                     delayMinutes = settings.settingsChangeDelayConfig2.delayMinutes.coerceIn(

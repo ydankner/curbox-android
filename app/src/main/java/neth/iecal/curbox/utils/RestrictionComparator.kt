@@ -1,6 +1,8 @@
 package neth.iecal.curbox.utils
 
 import com.google.gson.Gson
+import neth.iecal.curbox.data.models.AccessCondition
+import neth.iecal.curbox.data.models.AccessRequirement
 import neth.iecal.curbox.data.models.AppBlockerWarningScreenConfig
 import neth.iecal.curbox.data.models.AppBlockingType
 import neth.iecal.curbox.data.models.AppGroup
@@ -59,6 +61,8 @@ object RestrictionComparator {
                     !current.isWebsiteUsageTrackingEnabled || proposed.isWebsiteUsageTrackingEnabled
                 GatedSettingsField.CHANGE_DELAY ->
                     changeDelay(current.settingsChangeDelayConfig2, proposed.settingsChangeDelayConfig2)
+                GatedSettingsField.ACCESS_REQUIREMENTS ->
+                    accessRequirements(current, proposed)
             }
         } catch (e: Exception) {
             false
@@ -84,6 +88,7 @@ object RestrictionComparator {
     private fun appGroup(o: AppGroup, n: AppGroup): Boolean {
         if (!n.isActive) return false
         if (!n.selectedPackages.containsAll(o.selectedPackages)) return false
+        if (!requirementLinkKept(o.accessRequirementId, n.accessRequirementId)) return false
         if (!warningConfig(o.warningScreenConfig, n.warningScreenConfig)) return false
         val oldConfig = o.config ?: return false
         val newConfig = n.config ?: return false
@@ -104,6 +109,7 @@ object RestrictionComparator {
     private fun keywordGroup(o: KeywordGroup, n: KeywordGroup): Boolean {
         if (!n.isActive) return false
         if (!n.selectedKeywords.containsAll(o.selectedKeywords)) return false
+        if (!requirementLinkKept(o.accessRequirementId, n.accessRequirementId)) return false
         if (!warningConfig(o.warningScreenConfig, n.warningScreenConfig)) return false
         val oldConfig = o.config ?: return false
         val newConfig = n.config ?: return false
@@ -286,7 +292,6 @@ object RestrictionComparator {
                     o.appGoalRequiredMinutes.coerceAtLeast(1)
             else -> true
         }
-        val ankiClearOk = !o.isAnkiClearRequirementEnabled || n.isAnkiClearRequirementEnabled
         val intentMinLengthOk = when {
             !o.isIntentRequirementEnabled || !n.isIntentRequirementEnabled -> true
             else -> n.minIntentLength.coerceAtLeast(1) >= o.minIntentLength.coerceAtLeast(1)
@@ -296,7 +301,7 @@ object RestrictionComparator {
             proceedDisabledOk && dialogHiddenOk &&
             proceedDelayOk && vibrateOk && proceedLimitOk && qrOk && nfcOk && typingOk && intentOk &&
             adaptiveMathOk && adaptiveMathQuestionCountOk && adaptiveMathStartingLevelOk &&
-            focusGoalOk && appGoalOk && ankiClearOk && intentMinLengthOk
+            focusGoalOk && appGoalOk && intentMinLengthOk
     }
 
     /**
@@ -321,4 +326,47 @@ object RestrictionComparator {
 
     private inline fun <reified T> parse(json: String): T? =
         runCatching { gson.fromJson(json, T::class.java) }.getOrNull()
+
+    /** A group may gain a requirement, but dropping or swapping it opens the group sooner. */
+    private fun requirementLinkKept(oldId: String, newId: String): Boolean =
+        oldId.isEmpty() || oldId == newId
+
+    /**
+     * Only requirements that an active group points at restrict anything, so the others may be
+     * edited or deleted freely. A guarding requirement must still exist and be at least as hard.
+     */
+    fun accessRequirements(current: Settings, proposed: Settings): Boolean {
+        val guarding = current.blockedAppGroups.filter { it.isActive }.map { it.accessRequirementId } +
+            current.keywordBlockerConfig.keywordGroups.filter { it.isActive }.map { it.accessRequirementId }
+        return current.accessRequirements
+            .filter { it.id.isNotEmpty() && it.id in guarding }
+            .all { o ->
+                val n = proposed.accessRequirements.find { it.id == o.id } ?: return@all false
+                accessRequirement(o, n)
+            }
+    }
+
+    /** True when meeting [n] always means [o] is met too. */
+    fun accessRequirement(o: AccessRequirement, n: AccessRequirement): Boolean {
+        if (o.conditions.isEmpty()) return true
+        if (n.conditions.isEmpty()) return false
+        // With a single condition "all" and "any" mean the same thing.
+        val oldAll = o.isAllRequired || o.conditions.size == 1
+        val newAll = n.isAllRequired || n.conditions.size == 1
+        return when {
+            oldAll && newAll -> o.conditions.all { oc -> n.conditions.any { atLeastAsHard(oc, it) } }
+            !oldAll && !newAll -> n.conditions.all { nc -> o.conditions.any { atLeastAsHard(it, nc) } }
+            !oldAll && newAll -> n.conditions.any { nc -> o.conditions.any { atLeastAsHard(it, nc) } }
+            else -> n.conditions.all { nc -> o.conditions.all { atLeastAsHard(it, nc) } }
+        }
+    }
+
+    private fun atLeastAsHard(old: AccessCondition, new: AccessCondition): Boolean {
+        if (old.type != new.type) return false
+        return when (old.type) {
+            AccessCondition.TYPE_APP_USAGE ->
+                old.packageName == new.packageName && new.minutes >= old.minutes
+            else -> true
+        }
+    }
 }

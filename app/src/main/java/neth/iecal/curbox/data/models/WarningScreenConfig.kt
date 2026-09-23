@@ -29,7 +29,6 @@ data class AppBlockerWarningScreenConfig(
     val isAppGoalRequirementEnabled: Boolean = false,
     val appGoalPackageName: String = "",
     val appGoalRequiredMinutes: Int = 15,
-    val isAnkiClearRequirementEnabled: Boolean = false,
     /** For app groups, grant access only for the current selected-app session. */
     val isOnOpenConfig: Boolean = false,
 )
